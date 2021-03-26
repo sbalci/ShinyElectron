@@ -1,8 +1,7 @@
-// -*- mode: C++; c-indent-level: 4; c-basic-offset: 4; indent-tabs-mode: nil; -*-
 //
 // Vector.h: Rcpp R/C++ interface class library -- vectors
 //
-// Copyright (C) 2010 - 2017 Dirk Eddelbuettel and Romain Francois
+// Copyright (C) 2010 - 2020  Dirk Eddelbuettel and Romain Francois
 //
 // This file is part of Rcpp.
 //
@@ -40,12 +39,12 @@ public:
     typedef StoragePolicy<Vector> Storage ;
 
     typename traits::r_vector_cache_type<RTYPE, StoragePolicy>::type cache ;
-    typedef typename traits::r_vector_proxy<RTYPE>::type Proxy ;
-    typedef typename traits::r_vector_const_proxy<RTYPE>::type const_Proxy ;
-    typedef typename traits::r_vector_name_proxy<RTYPE>::type NameProxy ;
-    typedef typename traits::r_vector_proxy<RTYPE>::type value_type ;
-    typedef typename traits::r_vector_iterator<RTYPE>::type iterator ;
-    typedef typename traits::r_vector_const_iterator<RTYPE>::type const_iterator ;
+    typedef typename traits::r_vector_proxy<RTYPE, StoragePolicy>::type Proxy ;
+    typedef typename traits::r_vector_const_proxy<RTYPE, StoragePolicy>::type const_Proxy ;
+    typedef typename traits::r_vector_name_proxy<RTYPE, StoragePolicy>::type NameProxy ;
+    typedef typename traits::r_vector_proxy<RTYPE, StoragePolicy>::type value_type ;
+    typedef typename traits::r_vector_iterator<RTYPE, StoragePolicy>::type iterator ;
+    typedef typename traits::r_vector_const_iterator<RTYPE, StoragePolicy>::type const_iterator ;
     typedef typename traits::init_type<RTYPE>::type init_type ;
     typedef typename traits::r_vector_element_converter<RTYPE>::type converter_type ;
     typedef typename traits::storage_type<RTYPE>::type stored_type ;
@@ -71,12 +70,14 @@ public:
     }
 
     Vector( SEXP x ) {
-        Storage::set__( r_cast<RTYPE>(x) ) ;
+        Rcpp::Shield<SEXP> safe(x);
+        Storage::set__( r_cast<RTYPE>(safe) ) ;
     }
 
     template <typename Proxy>
     Vector( const GenericProxy<Proxy>& proxy ){
-        Storage::set__( r_cast<RTYPE>(proxy.get()) ) ;
+        Rcpp::Shield<SEXP> safe(proxy.get());
+        Storage::set__( r_cast<RTYPE>(safe) ) ;
     }
 
     explicit Vector( const no_init_vector& obj) {
@@ -174,7 +175,8 @@ public:
 
     template <bool NA, typename T>
     Vector( const sugar::SingleLogicalResult<NA,T>& obj ) {
-        Storage::set__( r_cast<RTYPE>( const_cast<sugar::SingleLogicalResult<NA,T>&>(obj).get_sexp() ) ) ;
+        Rcpp::Shield<SEXP> safe(const_cast<sugar::SingleLogicalResult<NA,T>&>(obj).get_sexp() );
+        Storage::set__( r_cast<RTYPE>(safe) ) ;
         RCPP_DEBUG_2( "Vector<%d>( const sugar::SingleLogicalResult<NA,T>& ) [T = %s]", RTYPE, DEMANGLE(T) )
     }
 
@@ -298,12 +300,12 @@ public:
      * one dimensional offset doing bounds checking to ensure
      * it is valid
      */
-    R_xlen_t offset(const R_xlen_t& i) const {
+    R_xlen_t offset(const R_xlen_t& i) const {											// #nocov start
         if(i < 0 || i >= ::Rf_xlength(Storage::get__()) ) {
             const char* fmt = "Index out of bounds: [index=%i; extent=%i].";
             throw index_out_of_bounds(fmt, i, ::Rf_xlength(Storage::get__()) ) ;
         }
-        return i ;
+        return i ;																		// #nocov end
     }
 
     R_xlen_t offset(const std::string& name) const {
@@ -349,9 +351,9 @@ public:
     inline Proxy at( const size_t& i) {
        return cache.ref( offset(i) ) ;
     }
-    inline const_Proxy at( const size_t& i) const {
+    inline const_Proxy at( const size_t& i) const {									// #nocov start
        return cache.ref( offset(i) ) ;
-    }
+    }																				// #nocov end
 
     inline Proxy operator()( const size_t& i, const size_t& j) {
         return cache.ref( offset(i,j) ) ;
@@ -629,7 +631,7 @@ private:
         iterator this_end(end());
         if( Rf_isNull(names) ){
             for( ; it < this_end; ++it, ++target_it ){
-                *target_it = *it ;
+                *target_it = *it ;												// #nocov start
             }
         } else {
             Shield<SEXP> newnames( ::Rf_allocVector( STRSXP, n + 1) ) ;
@@ -639,7 +641,7 @@ private:
                 SET_STRING_ELT( newnames, i, STRING_ELT(names, i ) ) ;
             }
             SET_STRING_ELT( newnames, i, Rf_mkChar("") ) ;
-            target.attr("names") = newnames ;
+            target.attr("names") = newnames ;									// #nocov end
         }
         *target_it = object_sexp;
         Storage::set__( target.get__() ) ;
@@ -682,8 +684,8 @@ private:
         int i=0;
         if( Rf_isNull(names) ){
             for( ; it < this_end; ++it, ++target_it,i++ ){
-                *target_it = *it ;
-                SET_STRING_ELT( newnames, i , R_BlankString );
+                *target_it = *it ;												// #nocov
+                SET_STRING_ELT( newnames, i , R_BlankString );					// #nocov
             }
         } else {
             for( ; it < this_end; ++it, ++target_it, i++ ){
@@ -936,6 +938,7 @@ private:
         }
 
         R_xlen_t n = size() ;
+
         Vector target( n - 1 ) ;
         iterator target_it(target.begin()) ;
         iterator it(begin()) ;
@@ -1125,11 +1128,11 @@ public:
 public:
 
     inline SEXP eval() const {
-        return Rcpp_eval( Storage::get__(), R_GlobalEnv ) ;
+        return Rcpp_fast_eval( Storage::get__(), R_GlobalEnv ) ;
     }
 
     inline SEXP eval(SEXP env) const {
-        return Rcpp_eval( Storage::get__(), env );
+        return Rcpp_fast_eval( Storage::get__(), env );
     }
 
 

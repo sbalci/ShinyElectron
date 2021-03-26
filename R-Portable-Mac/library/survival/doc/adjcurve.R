@@ -6,7 +6,7 @@
 options(continue="  ", width=60)
 options(SweaveHooks=list(fig=function() par(mar=c(4.1, 4.1, .3, 1.1))))
 pdf.options(pointsize=8) #text in graph about the same as regular text
-require(survival, quietly=TRUE)
+library(survival, quietly=TRUE)
 fdata <- flchain[flchain$futime > 7,]
 fdata$age2 <- cut(fdata$age, c(0,54, 59,64, 69,74,79, 89, 110),
                   labels = c(paste(c(50,55,60,65,70,75,80),
@@ -292,7 +292,7 @@ for (i in 1:3) {
     for (j in 1:16) {
         stemp <- summary(temp[j], times=xtime, extend=T)
         smat[,i] <- smat[,i] + pi[j]*stemp$surv
-        serr[,i] <- serr[,i] + pi[i]*stemp$std.err^2
+        serr[,i] <- serr[,i] + pi[j]*stemp$std.err^2
         }
     }
 serr <- sqrt(serr)

@@ -1,4 +1,157 @@
-# pillar 1.2.2 (2018-04-25)
+# pillar 1.4.7
+
+- Adapt to changed environment on CRAN's Solaris machine.
+
+
+# pillar 1.4.6
+
+- Restore compatibility with R 3.2.
+
+
+# pillar 1.4.5
+
+## Features
+
+- New `pillar.min_chars` option allows controlling the minimum number of characters shown for a character column (#178, @statsmaths).
+
+- `bit64::integer64()` columns are now formatted the same way as numeric columns (#175).
+
+- New `align()` to support easy alignment of strings within a character vector (existing function exported by @davidchall, #185).
+
+## Technical
+
+- `pillar_shaft()`, `format_type_sum()` and `extra_cols()` issue a warning if dots are unused.
+
+- `new_pillar_title()` and `new_pillar_type()` warn if `...` is not empty.
+
+## Internal
+
+- Use lifecycle package.
+
+- Remove compatibility code for R < 3.3.
+
+
+# pillar 1.4.4
+
+- `obj_sum()` uses `vctrs::vec_size()` internally.
+
+- `is_vector_s3.default()` is soft-deprecated and no longer used. Please ensure that `vctrs::vec_is()` is `TRUE` for your class.
+
+- Rely on vctrs for type abbreviations.
+
+
+# pillar 1.4.3
+
+- `new_pillar_shaft_simple()` gains `na` argument to control appearance of `NA` values.
+
+- String columns are quoted if at least one value needs quotes (#171).
+
+- Apply subtle style to `list_of` columns (#172).
+
+- Fix formatting if mantissa is very close to 1 (#174).
+
+- Use `as.character()` instead of `as_character()`.
+
+- Remove compatibility with testthat < 2.0.0.
+
+
+# pillar 1.4.2
+
+- List columns are shown with their perceived dimensions, which may be different from those stored in the `"dim"` attribute. Regression introduced in 1.4.0 (#167).
+
+- Add ellipsis to `vec_ptype_abbr()` method.
+
+
+# pillar 1.4.1
+
+- More careful specification of minimum package versions for the dependencies (#165).
+- Fix `type_sum.vctrs_vctr()` that also led to a NOTE in `R CMD check`.
+- Resolve `vec_is()` at runtime instead of during `.onLoad()` (#163, @lionel-).
+- Implement methods for vctrs objects.
+
+
+# pillar 1.4.0
+
+## Breaking changes
+
+- `type_sum()` forwards to `vctrs::vec_ptype_abbr()` (#134). This makes sure that `list_of` columns (for values of the same type) are properly displayed. The value returned for `factor` and `complex` remains unchanged, because this will change in vctrs.
+- The `class` argument to `new_pillar_shaft()` deprecates the existing `subclass` argument. Passing a `subclass` argument leads to a warning once per session (#157).
+
+## Output
+
+- Removed extra space for pillars with a negative value of lower magnitude than the largest positive value (example: -1 and 23).
+- 0-col tibble and matrix columns are now formatted with a capital containing `[,0]` and an empty shaft (#149).
+
+## Performance
+
+- `squeeze()` is now faster (because the width computation in `pillar_shaft.numeric()` now uses more arithmetics instead of string concatenation). Further speedups may require implemetation of crucial parts in C (#147).
+- Styling output is faster: an expensive check for availability of colored output is carried out only once per call to `colonnade()`, and styling is implemented manually (#133, @jimhester).
+
+## Internal
+
+- All internal S3 classes have the `pillar_` prefix (#156).
+- Only check native output on Windows, due to subtle differences when running on Linux in a latin1 locale.
+
+
+# pillar 1.3.1
+
+## Bug fixes
+
+- Fix off-by-one error in distribution of empty space (#141).
+
+## Visible changes
+
+- `NA` in names is no longer escaped with backticks.
+- Don't add quotes for pillars formatted with their `format()` method (tidyverse/tibble#448).
+
+## Internal changes
+
+- Update base type abbrevs to rlang 0.3.0 (#140, @lionel-).
+- Tests work again in a 256-color terminal (#129).
+
+
+# pillar 1.3.0
+
+## Visible changes
+
+- Unknown data types are formatted using `format()`, not `as.character()` (#120).
+
+- Multi-tier colonnades can always fill the last tier, even if the width isn't a proper multiple of `getOption("width")`. (Example: `options(width = 80, tibble.width = 200)` will print a wide tibble in three tiers, each 80 characters wide, with a total width of 240 characters.)
+
+- Fixed mixed formatting (showing some pillars with maximum, and some with minimum width). If a pillar's minimum width is smaller than `getOption("width")`, it is shown nevertheless, abbreviated with dots if necessary.
+
+## Interface changes
+
+- `format_type_sum()` gains `width` argument (#73).
+
+## Performance improvements
+
+- Printing large multi-tier colonnades is much faster, the code that distributes pillars over tiers uses a much simpler and much faster algorithm (tidyverse/tibble#422).
+
+- Printing is now faster overall, because less work is done for formatting in "subtle" style (gray of a fixed level), and because `fansi::strip_sgr()` is used instead of `crayon::strip_style()`.
+
+- Slightly faster printing of colonnades by reusing an intermediate result.
+
+## Internal
+
+- `pillar()` no longer adds backticks if `title` is non-syntactic.
+
+- `colonnade()` supports data frames and matrices. When printing, each sub-column is shown individually, using a title that resembles the syntax used to access it. Also supports recursively nested data frames (with data frame or matrix columns).
+
+- Added fuzz tests for character colonnades of varying widths.
+
+- Use `fansi::substr_ctl()` in favor of `crayon::col_substr()`.
+
+
+# pillar 1.2.3
+
+- Eliminate CRAN check warning about undeclared withr dependency.
+- More defensive test to address CRAN check failures on Solaris.
+- `colonnade()` now handles pillars named `"sep"` (#115).
+- `pillar_shaft.character()` gains `min_width` argument.
+
+
+# pillar 1.2.2
 
 - Whole numbers are printed without a decimal dot again. Numbers that are the result of a whole number divided by a power of 10 (subject to a tolerance to account for floating-point imprecision) are shown without trailing decimal zeros, even if these zeros are significant according to the `pillar.sigfig` option (#105).
 - New `new_pillar_title()` and `new_pillar_type()` to support consistent output in `glimpse()` (#31).
@@ -6,7 +159,7 @@
 - The `digits.secs` option is respected when computing the width for date-time values (#102).
 
 
-# pillar 1.2.1 (2018-02-26)
+# pillar 1.2.1
 
 Display
 -------
@@ -33,7 +186,7 @@ New functions
 - New styling helper `style_subtle_num()`, formatting depends on the `pillar.subtle_num` option.
 
 
-# pillar 1.1.0 (2018-01-14)
+# pillar 1.1.0
 
 - `NA` values are now shown in plain red, without changing the background color (#70).
 - New options to control the output, with defaults that match the current behavior unless stated otherwise:
@@ -47,12 +200,12 @@ New functions
 - Very wide tibbles now print faster (#85).
 
 
-# pillar 1.0.1 (2017-11-27)
+# pillar 1.0.1
 
 - Work around failing CRAN tests on Windows.
 
 
-# pillar 1.0.0 (2017-11-16)
+# pillar 1.0.0
 
 Initial release.
 

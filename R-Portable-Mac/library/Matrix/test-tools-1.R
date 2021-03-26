@@ -312,7 +312,9 @@ add.simpleDimnames <- function(m, named=FALSE) {
 
 as.mat <- function(m) {
     ## as(., "matrix")	but with no extraneous empty dimnames
+    d0 <- dim(m)
     m <- as(m, "matrix")
+    if(!length(m) && is.null(d0)) dim(m) <- c(0L, 0L) # rather than (0, 1)
     if(identical(dimnames(m), list(NULL,NULL)))
 	dimnames(m) <- NULL
     m
@@ -336,6 +338,15 @@ assert.EQ.mat <- function(M, m, tol = if(showOnly) 0 else 1e-15,
 assert.EQ.Mat <- function(M, M2, tol = if(showOnly) 0 else 1e-15,
                           showOnly=FALSE, giveRE = FALSE, ...)
     assert.EQ.mat(M, as.mat(M2), tol=tol, showOnly=showOnly, giveRE=giveRE)
+
+if(getRversion() <= "3.6.1" || R.version$`svn rev` < 77410)
+    ## { methods::canCoerce() : use .class1(), not class() }
+    canCoerce <- function(object, Class) {
+        is(object, Class) ||
+        !is.null(selectMethod("coerce", c(methods:::.class1(object), Class),
+                              optional = TRUE,
+                              useInherited = c(from=TRUE, to=FALSE)))
+    }
 
 
 chk.matrix <- function(M) {

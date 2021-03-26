@@ -1,0 +1,6 @@
+createFormApp           Creates a shinyform app from the defined
+                        questions and parameters set in formInfo.
+formServer              Creates the server component for shinyforms
+formUI                  Creates the UI form component for shinyforms.
+quickform               Quickly create a Google Form look-a-like Shiny
+                        app

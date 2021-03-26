@@ -230,10 +230,16 @@ if(require("Matrix", .Library)) {
     M+M # works the first time
     M+M # was error   "object '.Generic' not found"
     ##
-    stopifnot(
-        identical(pmin(2,M), pmin(2, as.matrix(M))),
-        identical(as.matrix(pmax(M, 7)), pmax(as.matrix(M), 7))
-    )
+    as.Matrix <- function(x) `dimnames<-`(as.matrix(x), list(NULL,NULL))
+    stopifnot(exprs = {
+        identical(pmin(2,M), pmin(2, as.matrix(M)))
+        identical(as.matrix(pmax(M, 7)),
+                  pmax(as.Matrix(M), 7))
+    })
     rm(M)
+
+    ## show(<S4 generic>) from base
+    show(chol2inv) # last line now has .. showMethods(chol2inv) ..
+
     detach("package:Matrix", unload=TRUE)
 }##{Matrix}

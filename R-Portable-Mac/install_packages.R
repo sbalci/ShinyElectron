@@ -23,6 +23,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE)){
 if (!requireNamespace("magrittr", quietly = TRUE)){
   utils::install.packages("magrittr", repos='http://cran.us.r-project.org')
 }
+
 library(batch)
 library(purrr)
 library(stringr)

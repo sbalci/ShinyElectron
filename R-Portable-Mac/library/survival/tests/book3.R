@@ -10,7 +10,6 @@ test2 <- data.frame(start=c(1, 2, 5, 2, 1, 7, 3, 4, 8, 8),
                     stop =c(2, 3, 6, 7, 8, 9, 9, 9,14,17),
                     event=c(1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
                     x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0) )
-fit0 <-coxph(Surv(start, stop, event) ~x, test2, iter=0, method='breslow')
 
 byhand <- function(beta, newx=0) {
     r <- exp(beta)
@@ -77,6 +76,7 @@ aeq(truth0$score, resid(fit0, 'score'))
 sfit <- survfit(fit0, list(x=0), censor=FALSE)
 aeq(sfit$std.err^2, truth0$var)
 aeq(sfit$surv, truth0$surv)
+aeq(fit0$score, truth0$u^2/truth0$imat)
 
 beta1 <- truth0$u/truth0$imat
 fit1 <- coxph(Surv(start, stop, event) ~x, test2, iter=1, ties="breslow")

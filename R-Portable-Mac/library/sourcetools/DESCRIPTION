@@ -19,5 +19,4 @@ NeedsCompilation: yes
 Packaged: 2018-04-25 03:19:22 UTC; kevin
 Repository: CRAN
 Date/Publication: 2018-04-25 03:38:09 UTC
-Built: R 3.5.0; x86_64-apple-darwin15.6.0; 2018-04-25 17:24:13 UTC; unix
-Archs: sourcetools.so.dSYM
+Built: R 4.1.0; x86_64-apple-darwin17.0; 2020-12-20 20:03:39 UTC; unix

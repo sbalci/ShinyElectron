@@ -1,6 +1,6 @@
 
-R version 3.5.0 RC (2018-04-15 r74605) -- "Joy in Playing"
-Copyright (C) 2018 The R Foundation for Statistical Computing
+R Under development (unstable) (2020-12-10 r79607) -- "Unsuffered Consequences"
+Copyright (C) 2020 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -921,13 +921,27 @@ Error in nchar(x, "w") : invalid multibyte string, element 10
 +     M+M # works the first time
 +     M+M # was error   "object '.Generic' not found"
 +     ##
-+     stopifnot(
-+         identical(pmin(2,M), pmin(2, as.matrix(M))),
-+         identical(as.matrix(pmax(M, 7)), pmax(as.matrix(M), 7))
-+     )
++     as.Matrix <- function(x) `dimnames<-`(as.matrix(x), list(NULL,NULL))
++     stopifnot(exprs = {
++         identical(pmin(2,M), pmin(2, as.matrix(M)))
++         identical(as.matrix(pmax(M, 7)),
++                   pmax(as.Matrix(M), 7))
++     })
 +     rm(M)
++ 
++     ## show(<S4 generic>) from base
++     show(chol2inv) # last line now has .. showMethods(chol2inv) ..
++ 
 +     detach("package:Matrix", unload=TRUE)
 + }##{Matrix}
 Loading required package: Matrix
 <sparse>[ <logic> ] : .M.sub.i.logical() maybe inefficient
+standardGeneric for "chol2inv" defined from package "base"
+
+function (x, ...) 
+standardGeneric("chol2inv")
+<bytecode: 0x9127e08>
+<environment: 0x912a7b8>
+Methods may be defined for arguments: x
+Use  showMethods(chol2inv)  for currently available ones.
 > 

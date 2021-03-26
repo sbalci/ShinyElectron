@@ -31,19 +31,17 @@
 
 #include <boost/geometry/strategies/buffer.hpp>
 #include <boost/geometry/strategies/side.hpp>
+#include <boost/geometry/algorithms/detail/make/make.hpp>
 #include <boost/geometry/algorithms/detail/buffer/buffered_piece_collection.hpp>
 #include <boost/geometry/algorithms/detail/buffer/line_line_intersection.hpp>
-#include <boost/geometry/algorithms/detail/buffer/parallel_continue.hpp>
 
 #include <boost/geometry/algorithms/assign.hpp>
 #include <boost/geometry/algorithms/num_interior_rings.hpp>
 #include <boost/geometry/algorithms/simplify.hpp>
 
-#include <boost/geometry/views/detail/normalized_view.hpp>
+#include <boost/geometry/arithmetic/infinite_line_functions.hpp>
 
-#if defined(BOOST_GEOMETRY_BUFFER_SIMPLIFY_WITH_AX)
-#include <boost/geometry/strategies/cartesian/distance_projected_point_ax.hpp>
-#endif
+#include <boost/geometry/views/detail/normalized_view.hpp>
 
 
 namespace boost { namespace geometry
@@ -67,45 +65,21 @@ inline void simplify_input(Range const& range,
     // sensitive to small scale input features, however the result will
     // look better.
     // It also gets rid of duplicate points
-#if ! defined(BOOST_GEOMETRY_BUFFER_SIMPLIFY_WITH_AX)
-    geometry::simplify(range, simplified, distance.simplify_distance());
-#else
 
-    typedef typename boost::range_value<Range>::type point_type;
-    typedef strategy::distance::detail::projected_point_ax<> ax_type;
-    typedef typename strategy::distance::services::return_type
+    typedef typename geometry::point_type<Range>::type point_type;
+    typedef typename strategy::distance::services::default_strategy
     <
-        strategy::distance::detail::projected_point_ax<>,
-        point_type,
-        point_type
-    >::type return_type;
-
-    typedef strategy::distance::detail::projected_point_ax_less
+        point_tag, segment_tag, point_type
+    >::type ds_strategy_type;
+    typedef strategy::simplify::douglas_peucker
     <
-        return_type
-    > comparator_type;
+        point_type, ds_strategy_type
+    > strategy_type;
 
-    typedef strategy::simplify::detail::douglas_peucker
-    <
-        point_type,
-        strategy::distance::detail::projected_point_ax<>,
-        comparator_type
-    > dp_ax;
+    geometry::detail::simplify::simplify_range<2>::apply(range,
+        simplified, distance.simplify_distance(),
+        strategy_type());
 
-    return_type max_distance(distance.simplify_distance() * 2.0,
-                             distance.simplify_distance());
-    comparator_type comparator(max_distance);
-    dp_ax strategy(comparator);
-
-    geometry::simplify(range, simplified, max_distance, strategy);
-#endif
-
-    if (boost::size(simplified) == 2
-        && geometry::equals(geometry::range::front(simplified),
-                geometry::range::back(simplified)))
-    {
-        traits::resize<Range>::apply(simplified, 1);
-    }
 }
 
 
@@ -123,7 +97,7 @@ struct buffer_range
         typename JoinStrategy,
         typename EndStrategy,
         typename RobustPolicy,
-        typename Strategy
+        typename SideStrategy
     >
     static inline
     void add_join(Collection& collection,
@@ -139,13 +113,13 @@ struct buffer_range
             JoinStrategy const& join_strategy,
             EndStrategy const& end_strategy,
             RobustPolicy const& ,
-            Strategy const& strategy) // side strategy
+            SideStrategy const& side_strategy) // side strategy
     {
         output_point_type intersection_point;
         geometry::assign_zero(intersection_point);
 
         geometry::strategy::buffer::join_selector join
-                = get_join_type(penultimate_input, previous_input, input, strategy);
+                = get_join_type(penultimate_input, previous_input, input, side_strategy);
         if (join == geometry::strategy::buffer::join_convex)
         {
             // Calculate the intersection-point formed by the two sides.
@@ -203,23 +177,28 @@ struct buffer_range
         }
     }
 
-    template <typename Strategy>
+    static inline bool similar_direction(output_point_type const& p0,
+            output_point_type const& p1,
+            output_point_type const& p2)
+    {
+        typedef model::infinite_line<coordinate_type> line_type;
+        line_type const p = detail::make::make_infinite_line<coordinate_type>(p0, p1);
+        line_type const q = detail::make::make_infinite_line<coordinate_type>(p1, p2);
+        return arithmetic::similar_direction(p, q);
+    }
+
+    template <typename SideStrategy>
     static inline geometry::strategy::buffer::join_selector get_join_type(
             output_point_type const& p0,
             output_point_type const& p1,
             output_point_type const& p2,
-            Strategy const& strategy) // side strategy
+            SideStrategy const& side_strategy)
     {
-        int const side = strategy.apply(p0, p1, p2);
+        int const side = side_strategy.apply(p0, p1, p2);
         return side == -1 ? geometry::strategy::buffer::join_convex
             :  side == 1  ? geometry::strategy::buffer::join_concave
-            :  parallel_continue
-                    (
-                        get<0>(p2) - get<0>(p1),
-                        get<1>(p2) - get<1>(p1),
-                        get<0>(p1) - get<0>(p0),
-                        get<1>(p1) - get<1>(p0)
-                    )  ? geometry::strategy::buffer::join_continue
+            :  similar_direction(p0, p1, p2)
+                          ? geometry::strategy::buffer::join_continue
             : geometry::strategy::buffer::join_spike;
     }
 
@@ -993,7 +972,7 @@ inline void buffer_inserter(GeometryInput const& geometry_input, OutputIterator 
             end_strategy, point_strategy,
             robust_policy, intersection_strategy.get_side_strategy());
 
-    collection.get_turns();
+    collection.get_turns(distance_strategy);
     collection.classify_turns();
     if (BOOST_GEOMETRY_CONDITION(areal))
     {

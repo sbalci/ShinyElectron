@@ -22,6 +22,25 @@
 #ifndef Rcpp_macros_macros_h
 #define Rcpp_macros_macros_h
 
+#include <string>
+
+namespace Rcpp {
+namespace internal {
+namespace debug {
+
+inline std::string short_file_name(const char* file)
+{
+    std::string f(file);
+    size_t index = f.find("/include/");
+    if (index != std::string::npos)
+        f = f.substr(index + 9);
+    return f;
+}
+
+} // namespace debug
+} // namespace internal
+} // namespace Rcpp
+
 #define RCPP_DECORATE(__FUN__) __FUN__##__rcpp__wrapper__
 #define RCPP_GET_NAMES(x) Rf_getAttrib(x, R_NamesSymbol)
 #define RCPP_GET_CLASS(x) Rf_getAttrib(x, R_ClassSymbol)
@@ -29,88 +48,68 @@
 #ifndef BEGIN_RCPP
 #define BEGIN_RCPP                                                                               \
     int rcpp_output_type = 0 ;                                                                   \
+    int nprot = 0;                                                                               \
     (void)rcpp_output_type;                                                                      \
     SEXP rcpp_output_condition = R_NilValue ;                                                    \
     (void)rcpp_output_condition;                                                                 \
+    static SEXP stop_sym = Rf_install("stop");                                                   \
     try {
 #endif
 
 #ifndef VOID_END_RCPP
-// longer form with Rcpp::internal::LongjumpException first, alternate below #else
-#if defined(RCPP_USE_UNWIND_PROTECT)
-    }                                                                                            \
-    catch( Rcpp::internal::InterruptedException &__ex__) {                                       \
-        rcpp_output_type = 1 ;                                                                   \
-    }                                                                                            \
-    catch(Rcpp::internal::LongjumpException& __ex__) {                                           \
-        Rcpp::internal::resumeJump(__ex__.token);                                                \
-        rcpp_output_type = 2 ;                                                                   \
-        rcpp_output_condition = PROTECT(string_to_try_error("Unexpected LongjumpException")) ;   \
-    }                                                                                            \
-    catch(Rcpp::exception& __ex__) {                                                             \
-       rcpp_output_type = 2 ;                                                                    \
-       rcpp_output_condition = PROTECT(rcpp_exception_to_r_condition(__ex__)) ;                  \
-    }                                                                                            \
-    catch( std::exception& __ex__ ){                                                             \
-       rcpp_output_type = 2 ;                                                                    \
-       rcpp_output_condition = PROTECT(exception_to_r_condition(__ex__)) ;                       \
-    }                                                                                            \
-    catch( ... ){                                                                                \
-       rcpp_output_type = 2 ;                                                                    \
-       rcpp_output_condition = PROTECT(string_to_try_error("c++ exception (unknown reason)")) ;  \
-    }                                                                                            \
-    if( rcpp_output_type == 1 ){                                                                 \
-       Rf_onintr() ;                                                                             \
-    }                                                                                            \
-    if( rcpp_output_type == 2 ){                                                                 \
-       SEXP stop_sym  = Rf_install( "stop" ) ;                                                   \
-       SEXP expr = PROTECT( Rf_lang2( stop_sym , rcpp_output_condition ) ) ;                     \
-       Rf_eval( expr, R_GlobalEnv ) ;                                                            \
-    }
-#else
 #define VOID_END_RCPP                                                                            \
     }                                                                                            \
     catch( Rcpp::internal::InterruptedException &__ex__) {                                       \
         rcpp_output_type = 1 ;                                                                   \
     }                                                                                            \
+    catch (Rcpp::LongjumpException& __ex__) {                                                    \
+        rcpp_output_type = 3 ;                                                                   \
+        rcpp_output_condition = __ex__.token;                                                    \
+    }                                                                                            \
     catch(Rcpp::exception& __ex__) {                                                             \
        rcpp_output_type = 2 ;                                                                    \
        rcpp_output_condition = PROTECT(rcpp_exception_to_r_condition(__ex__)) ;                  \
+       ++nprot;                                                                                  \
     }                                                                                            \
     catch( std::exception& __ex__ ){                                                             \
        rcpp_output_type = 2 ;                                                                    \
        rcpp_output_condition = PROTECT(exception_to_r_condition(__ex__)) ;                       \
+       ++nprot;                                                                                  \
     }                                                                                            \
     catch( ... ){                                                                                \
        rcpp_output_type = 2 ;                                                                    \
        rcpp_output_condition = PROTECT(string_to_try_error("c++ exception (unknown reason)")) ;  \
+       ++nprot;                                                                                  \
     }                                                                                            \
     if( rcpp_output_type == 1 ){                                                                 \
        Rf_onintr() ;                                                                             \
     }                                                                                            \
     if( rcpp_output_type == 2 ){                                                                 \
-       SEXP stop_sym  = Rf_install( "stop" ) ;                                                   \
        SEXP expr = PROTECT( Rf_lang2( stop_sym , rcpp_output_condition ) ) ;                     \
-       Rf_eval( expr, R_GlobalEnv ) ;                                                            \
-    }
-#endif
+       ++nprot;                                                                                  \
+       Rf_eval( expr, R_BaseEnv ) ;                                                              \
+    }                                                                                            \
+    if (rcpp_output_type == 3) {                                                                 \
+        Rcpp::internal::resumeJump(rcpp_output_condition);                                       \
+    }                                                                                            \
+    UNPROTECT(nprot);
 #endif
 
 #ifndef END_RCPP
 #define END_RCPP VOID_END_RCPP return R_NilValue;
 #endif
 
+
+// There is no return in case of a longjump exception
+
 #ifndef END_RCPP_RETURN_ERROR
-// longer form with Rcpp::internal::LongjumpException first, alternate below #else
-#if defined(RCPP_USE_UNWIND_PROTECT)
 #define END_RCPP_RETURN_ERROR                                                  \
   }                                                                            \
   catch (Rcpp::internal::InterruptedException &__ex__) {                       \
     return Rcpp::internal::interruptedError();                                 \
   }                                                                            \
-  catch (Rcpp::internal::LongjumpException& __ex__) {                          \
-    Rcpp::internal::resumeJump(__ex__.token);                                  \
-    return string_to_try_error("Unexpected LongjumpException") ;               \
+  catch (Rcpp::LongjumpException& __ex__) {                                    \
+    return Rcpp::internal::longjumpSentinel(__ex__.token);                     \
   }                                                                            \
   catch (std::exception &__ex__) {                                             \
     return exception_to_try_error(__ex__);                                     \
@@ -118,21 +117,9 @@
   catch (...) {                                                                \
     return string_to_try_error("c++ exception (unknown reason)");              \
   }                                                                            \
-  return R_NilValue;
-#else
-#define END_RCPP_RETURN_ERROR                                                  \
-  }                                                                            \
-  catch (Rcpp::internal::InterruptedException &__ex__) {                       \
-    return Rcpp::internal::interruptedError();                                 \
-  }                                                                            \
-  catch (std::exception &__ex__) {                                             \
-    return exception_to_try_error(__ex__);                                     \
-  }                                                                            \
-  catch (...) {                                                                \
-    return string_to_try_error("c++ exception (unknown reason)");              \
-  }                                                                            \
-  return R_NilValue;
-#endif
+  UNPROTECT(nprot);                                                            \
+  return R_NilValue;                                                           \
+  (void) stop_sym;   /* never reached but suppresses warning */
 #endif
 
 #define Rcpp_error(MESSAGE) throw Rcpp::exception(MESSAGE, __FILE__, __LINE__)

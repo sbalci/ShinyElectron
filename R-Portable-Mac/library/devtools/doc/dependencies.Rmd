@@ -2,7 +2,9 @@
 title: "Devtools dependencies"
 author: "Jim Hester, Hadley Wickham"
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    keep_md: true
 vignette: >
   %\VignetteIndexEntry{Devtools dependencies}
   %\VignetteEngine{knitr::rmarkdown}
@@ -30,9 +32,28 @@ The `type` is an optional parameter.  If the type is missing the default is
 to install from GitHub. Additional remote dependencies should be separated by
 commas, just like normal dependencies elsewhere in the `DESCRIPTION` file.
 
-### Github
+It is important to remember that you **must always declare the dependency in the usual way**, i.e. include it in `Depends`, `Imports`, `Suggests` or `Enhances`. The `Remotes` field only provides instructions on where to install the dependency from. In this example `DESCRIPTION` file, note how rlang appears in `Imports` and in `Remotes`:
 
-Because github is the most commonly used unofficial package distribution in R, it's the default:
+```
+Package: xyz
+Title: What the Package Does (One Line, Title Case)
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "First",
+           family = "Last",
+           role = c("aut", "cre"),
+           email = "first.last@example.com")
+Description: What the package does (one paragraph).
+License: MIT + file LICENSE
+Imports: 
+    rlang
+Remotes:  
+    r-lib/rlang
+```
+
+### GitHub
+
+Because GitHub is the most commonly used unofficial package distribution in R, it's the default:
 
 ```yaml
 Remotes: hadley/testthat
@@ -46,7 +67,7 @@ Remotes: hadley/httr@v0.4,
   hadley/testthat@c67018fa4970
 ```
 
-A type of 'github' can be specified, but is not required
+A type of `github` can be specified, but is not required
 
 ```yaml
 Remotes: github::hadley/ggplot2
@@ -58,11 +79,14 @@ All of the currently supported install sources are available, see the 'See
 Also' section in `?install` for a complete list.
 
 ```yaml
+# GitLab
+Remotes: gitlab::jimhester/covr
+
 # Git
-Remotes: git::https://github.com/hadley/ggplot2.git
+Remotes: git::git@bitbucket.org:djnavarro/lsr.git
 
 # Bitbucket
-Remotes: bitbucket::sulab/mygene.r@default, dannavarro/lsr-package
+Remotes: bitbucket::sulab/mygene.r@default, djnavarro/lsr
 
 # Bioconductor
 Remotes: bioc::3.3/SummarizedExperiment#117513, bioc::release/Biobase

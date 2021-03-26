@@ -12,5 +12,4 @@ NeedsCompilation: yes
 Packaged: 2015-02-04 20:31:00 UTC; svnuser
 Repository: CRAN
 Date/Publication: 2015-07-28 08:03:37
-Built: R 3.5.0; x86_64-apple-darwin15.6.0; 2018-04-23 04:06:34 UTC; unix
-Archs: base64enc.so.dSYM
+Built: R 4.1.0; x86_64-apple-darwin17.0; 2020-12-20 20:03:23 UTC; unix
